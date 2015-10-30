@@ -1,0 +1,117 @@
+var gl = null;
+var prg = null; 
+var c_width = 0; 
+var c_height = 0; 
+
+var coneVertexBuffer = null;
+var coneIndexBuffer = null; 
+
+var indices = [];
+var vertices = [];
+
+var mvMatrix = mat4.create();
+var pMatrix = mat4.create(); 
+
+function initProgram() {
+    var fgShader = utils.getShader(gl, 'shader-fs');
+    var vxShader = utils.getShader(gl, 'shader-vs');
+
+    prg = gl.createProgram();
+    gl.attachShader(prg, vxShader);
+    gl.attachShader(prg, fgShader);
+    gl.linkProgram(prg);
+
+    if (!gl.getProgramParameter(prg, gl.LINK_STATUS)) {
+        alert('Could not initialise shaders');
+    }
+
+    gl.useProgram(prg);
+
+    prg.vertexPositionAttribute = gl.getAttribLocation(prg, 'aVertexPosition');
+    prg.pMatrixUniform          = gl.getUniformLocation(prg, 'uPMatrix');
+    prg.mvMatrixUniform         = gl.getUniformLocation(prg, 'uMVMatrix');
+}
+
+function initBuffers() {
+
+    vertices =[1.5, 0, 0, 
+	       -1.5, 1, 0, 
+	       -1.5, 0.809017,0.587785,
+	       -1.5, 0.309017,0.951057, 
+	       -1.5, -0.309017, 0.951057, 
+	       -1.5, -0.809017, 0.587785,
+	       -1.5, -1, 0, 
+	       -1.5, -0.809017, -0.587785,
+	       -1.5, -0.309017, -0.951057, 
+	       -1.5, 0.309017,-0.951057, 
+	       -1.5, 0.809017,-0.587785];
+
+    indices = [0, 1, 2,
+	       0, 2, 3,
+	       0, 3, 4,
+	       0, 4, 5,
+	       0, 5, 6,
+	       0, 6, 7,
+	       0, 7, 8,
+	       0, 8, 9,
+	       0, 9, 10,
+	       0, 10, 1];
+
+    coneVertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, coneVertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    
+    
+    coneIndexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, coneIndexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+    
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    gl.bindBuffer(gl.ARRAY_BUFFER,null);
+
+}
+
+function drawScene(){
+
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.viewport(0,0,c_width, c_height);
+
+    mat4.perspective(45, c_width / c_height, 0.1, 10000.0, pMatrix);
+    mat4.identity(mvMatrix);
+    mat4.translate(mvMatrix, [0.0, 0.0, -5.0]);
+
+    gl.uniformMatrix4fv(prg.pMatrixUniform, false, pMatrix);
+    gl.uniformMatrix4fv(prg.mvMatrixUniform, false, mvMatrix);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, coneVertexBuffer);
+    gl.vertexAttribPointer(prg.aVertexPosition, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(prg.vertexPositionAttribute);
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, coneIndexBuffer);
+    gl.drawElements(gl.LINE_LOOP, indices.length, gl.UNSIGNED_SHORT,0);
+}
+
+function renderLoop() {
+    requestAnimFrame(renderLoop);
+    drawScene();
+}
+
+function start() {
+    gl = utils.getGLContext('canvas-element-id');
+    initProgram();
+    $.ajax({
+        type: "GET",
+        url: "0-0.vtk",
+        timeout: 20000,
+        contentType: "application/x-www-form-urlencoded;charset=ISO-8859-15",
+        success: function(data) { 
+	    console.log(data);
+	    d = data;
+	    initBuffers();
+	    renderLoop();
+	}
+    });  
+}
