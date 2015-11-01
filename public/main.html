@@ -13,31 +13,85 @@ background : black;
 </style>
 
 <script type='text/javascript' src='js/gl-matrix-min.js'></script>
-<script type='text/javascript' src='js/jquery-1.5.1.min.js'></script>
+<script type='text/javascript' src='js/jquery.js'></script>
 <script type='text/javascript' src='js/utils.js'></script>
 <script type='text/javascript' src='js/Camera.js'></script>
 <script type='text/javascript' src='js/CameraInteractor.js'></script>
-<script id='shader-fs' type='x-shader/x-fragment'>
-    #ifdef GL_ES
-    precision highp float;
-    #endif
+<script id="shader-fs" type="x-shader/x-fragment">
+#ifdef GL_ES
+precision highp float;
+#endif
 
-    void main(void) {
-        gl_FragColor = vec4(0.5, 0.9, 0.2, 1.0); //Green
-    }
+uniform float uShininess;       
+uniform vec4 uLightAmbient;     
+uniform vec4 uLightDiffuse;     
+uniform vec4 uMaterialDiffuse;  
+
+varying vec3 vNormal;
+varying vec3 vLightDir;
+varying vec3 vEyeVec;
+
+void main(void)
+{
+ vec3 L = normalize(vLightDir);
+ vec3 N = normalize(vNormal);
+ 
+ float lambertTerm = dot(N,-L);
+ 
+ vec4 Ia = uLightAmbient;
+ 
+ vec4 Id = vec4(0.0,0.0,0.0,1.0);
+ 
+ vec4 Is = vec4(0.0,0.0,0.0,1.0);
+ 
+ if(lambertTerm > 0.0)
+ {
+  Id = uMaterialDiffuse * lambertTerm;
+  
+  vec3 E = normalize(vEyeVec);
+  vec3 R = reflect(L, N);
+  float specular = pow( max(dot(R, E), 0.0), uShininess);
+  
+  Is = uLightDiffuse * specular; 
+ }
+ 
+ vec4 finalColor = Ia + Id + Is;
+ finalColor.a = 1.0;
+ 
+ gl_FragColor = finalColor;
+}
 </script>
 
-<script id='shader-vs' type='x-shader/x-vertex'>
-    attribute vec3 aVertexPosition;
+<script id="shader-vs" type="x-shader/x-vertex">
+attribute vec3 aVertexPosition;
+attribute vec3 aVertexNormal;
 
-    uniform mat4 uMVMatrix;
-    uniform mat4 uPMatrix;
+uniform mat4 uMVMatrix; 
+uniform mat4 uPMatrix; 
+uniform mat4 uNMatrix; 
 
-    void main(void) {
-        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-        gl_PointSize = 3.0;
-    }
+uniform vec3 uLightPosition;
+
+varying vec3 vNormal;
+varying vec3 vLightDir;
+varying vec3 vEyeVec;
+
+void main(void) {
+
+ vec4 vertex = uMVMatrix * vec4(aVertexPosition, 1.0);
+ 
+ vNormal = vec3(uNMatrix * vec4(aVertexNormal, 0.0));
+
+ vLightDir = vertex.xyz - uLightPosition;
+ 
+ vEyeVec = -vec3(vertex.xyz);
+ 
+ gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+ 
+}
 </script>
+
+
 <script type="text/javascript" src="script.js">
 </script>
 </head>
