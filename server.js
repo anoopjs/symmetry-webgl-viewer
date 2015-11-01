@@ -8,6 +8,7 @@ app.get('/', function(req, res, next) {
     });
 });
 app.get('/vtk', function(req, res, next) {
+    var models = [];
     fs.readdir("public/VTK/",function(err, dirs) {
 	dirs = dirs.filter(function(dir) {
 	    return (fs.lstatSync("public/VTK/"+dir).isDirectory() && dir.toString() != "others");
@@ -15,9 +16,9 @@ app.get('/vtk', function(req, res, next) {
 	for (i = 0; i < dirs.length; i++) {
 	    files = fs.readdirSync("public/VTK/" + dirs[i] + "/");
 	    var data = fs.readFileSync("public/VTK/" + dirs[i] + "/" + files[0], 'utf8');
-	    console.log(parseVTK(data));
+	    models.push(parseVTK(data));
 	}
-	res.end();
+	res.end(models);
     });
 });
 app.get('/:name', function(req, res, next) {

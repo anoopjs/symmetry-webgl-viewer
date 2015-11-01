@@ -285,7 +285,7 @@ function start() {
     initProgram();
     $.ajax({
        type: "GET",
-        url: "0.vtk",
+        url: "/vtk",
         timeout: 20000,
         contentType: "application/x-www-form-urlencoded;charset=ISO-8859-15",
         success: function(data) { 
