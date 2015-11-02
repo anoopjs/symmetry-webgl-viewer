@@ -9,9 +9,22 @@ var coneNormalBuffer = null;
 
 var indices = [];
 var vertices = [];
+var colors = [];
+var colorMap = [
+    [1   ,0.8 ,0.8 ],  //0 skin
+    [0.5 ,1   ,0.5 ],  //1 green
+    [0   ,1   ,1   ],  //2 cyan
+    [0.6 ,0.6 ,1   ],  //3 
+    [1   ,0   ,0.5 ],  //4 red
+    [1   ,0.8 ,0.8 ],  //0 skin  
+    [0.5 ,1   ,0   ],  //6 green 
+    [0.5 ,0   ,1   ],  //7 
+    [0   ,0.5 ,1   ],  //8 blue
+    [1   ,0.65,0   ],  //9 orange  
+];
 var normals = [];
 var normalObj = [];
-
+var models = [];
 var mvMatrix = mat4.create();
 var pMatrix = mat4.create(); 
 var nMatrix = mat4.create();
@@ -36,6 +49,7 @@ function initProgram() {
     prg.pMatrixUniform          = gl.getUniformLocation(prg, 'uPMatrix');
     prg.mvMatrixUniform         = gl.getUniformLocation(prg, 'uMVMatrix');
     prg.aVertexNormal   = gl.getAttribLocation(prg, 'aVertexNormal');
+    prg.aVertexColor    = gl.getAttribLocation(prg, 'aVertexColor');
     prg.uNMatrix           = gl.getUniformLocation(prg, "uNMatrix");
 
     prg.uMaterialDiffuse  = gl.getUniformLocation(prg, "uMaterialDiffuse");
@@ -48,13 +62,13 @@ function initProgram() {
     prg.uShininess         = gl.getUniformLocation(prg, "uShininess");
 
     gl.uniform3fv(prg.uLightPosition,    [0, 120, 120]);
-    gl.uniform4fv(prg.uLightAmbient,      [0.20,0.20,0.20,1.0]);
-    gl.uniform4fv(prg.uLightDiffuse,      [1.0,1.0,1.0,1.0]); 
+    gl.uniform4fv(prg.uLightAmbient,      [0.20,0.20,0.20,0.0]);
+    gl.uniform4fv(prg.uLightDiffuse,      [1.0,1.0,1.0,0.0]); 
 
 
-    gl.uniform4fv(prg.uMaterialAmbient, [1.0,1.0,1.0,1.0]); 
-    gl.uniform4fv(prg.uMaterialDiffuse, [0.5,0.5,0.5,1.0]);
-    gl.uniform4fv(prg.uMaterialSpecular,[1.0,1.0,1.0,1.0]);
+    gl.uniform4fv(prg.uMaterialAmbient, [1.0,1.0,1.0,0.0]); 
+    gl.uniform4fv(prg.uMaterialDiffuse, [0.6,0.5,0.5,0.0]);
+    gl.uniform4fv(prg.uMaterialSpecular,[1.0,1.0,1.0,0.0]);
 
     gl.uniform1f(prg.uShininess, 230.0);
 
@@ -97,6 +111,10 @@ function initBuffers() {
     coneIndexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, coneIndexBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+    coneColorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, coneColorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
     
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     gl.bindBuffer(gl.ARRAY_BUFFER,null);
@@ -107,6 +125,9 @@ function draw(){
     gl.viewport(0, 0, c_width, c_height);
 //    gl.clearColor(0.3,0,0.3, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    // gl.enable(gl.BLEND);
+    // gl.disable(gl.DEPTH_TEST);
+    // gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     try {
 	updateTransforms();   
@@ -119,6 +140,10 @@ function draw(){
         gl.bindBuffer(gl.ARRAY_BUFFER, coneNormalBuffer);
         gl.vertexAttribPointer(prg.aVertexNormal,3,gl.FLOAT, false, 0,0);
 	gl.enableVertexAttribArray(prg.aVertexNormal);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, coneColorBuffer);
+	gl.vertexAttribPointer(prg.aVertexColor, 3, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(prg.aVertexColor);
 
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, coneIndexBuffer);
 	gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT,0);
@@ -160,11 +185,15 @@ function setMatrixUniforms(){
 
 
 function configure() {
-//    gl.clearColor(0.3,0,0.3, 1.0);
-    gl.clearDepth(100.0);
+    //    gl.clearColor(0.3,0,0.3, 1.0);
+    //    gl.clearDepth(100.0);
+    //    gl.enable(gl.DEPTH_TEST);
+    //    gl.depthMask(false);
+    //    gl.enable(gl.BLEND);
     gl.enable(gl.DEPTH_TEST);
-    gl.depthFunc(gl.LEQUAL);
-
+    //    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    //    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    //    gl.depthFunc(gl.LEQUAL);
     var midx = vertices.filter(function (a, index) {
 	return index % 3 == 0;
     }).reduce(function(a, b) {
@@ -273,9 +302,9 @@ function configure() {
     var canvas = document.getElementById('canvas-element-id');
     interactor = new CameraInteractor(camera, canvas);
     
-    gl.uniform4fv(prg.uLightAmbient,      [0.1,0.1,0.1,1.0]);
+    gl.uniform4fv(prg.uLightAmbient,      [0.1,0.1,0.1,0.8]);
     gl.uniform3fv(prg.uLightPosition,    [0, 0, 2120]);
-    gl.uniform4fv(prg.uLightDiffuse,      [0.7,0.7,0.7,1.0]);
+    gl.uniform4fv(prg.uLightDiffuse,      [0.7,0.7,0.7,0.0]);
 
     initTransforms();
 }
@@ -289,9 +318,21 @@ function start() {
         timeout: 20000,
         contentType: "application/x-www-form-urlencoded;charset=ISO-8859-15",
         success: function(data) { 
-	    data = data[0];
-	    vertices = Array.prototype.concat.apply([], data.vertices);
-	    indices = Array.prototype.concat.apply([], data.faces);
+	    models = JSON.parse(data);
+	    var faceIndex = 0;
+	    for (i = 0; i < models.length; i++) {
+		vertices = vertices.concat(models[i].vertices);
+		var fill = Array.apply(null, Array(models[i].vertices.length))
+		    .map(function(){return colorMap[models[i].color];});
+		colors = colors.concat(fill);
+		indices = indices.concat(models[i].faces.map(function(face) {
+		     return [face[0] + faceIndex, face[1] + faceIndex, face[2] + faceIndex];
+		}));
+		faceIndex += models[i].vertices.length;
+	    }
+	    vertices = Array.prototype.concat.apply([], vertices);
+	    indices = Array.prototype.concat.apply([], indices);
+	    colors = Array.prototype.concat.apply([], colors);
 	    configure();
 	    initBuffers();
 	    renderLoop();

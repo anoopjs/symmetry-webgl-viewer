@@ -15,11 +15,16 @@ app.get('/vtk', function(req, res, next) {
 	});
 	for (i = 0; i < dirs.length; i++) {
 	    files = fs.readdirSync("public/VTK/" + dirs[i] + "/");
-	    var data = fs.readFileSync("public/VTK/" + dirs[i] + "/" + files[0], 'utf8');
-	    models.push(parseVTK(data));
+	    for (j = 0; j < files.length; j++) {
+		var data = fs.readFileSync("public/VTK/" + dirs[i] + "/" + files[j], 'utf8');
+		var pdata = parseVTK(data);
+		pdata.color = i %  6;
+		models.push(pdata);
+	    }
 	}
-	res.end(models);
+	res.end(JSON.stringify(models));
     });
+
 });
 app.get('/:name', function(req, res, next) {
     var vertices = [];

@@ -25,7 +25,9 @@ utilsObject.prototype.getGLContext = function(name){
     
     for (var i = 0; i < names.length; ++i) {
 	try {
-	    ctx = canvas.getContext(names[i]);
+	    ctx = canvas.getContext(names[i], {
+		premultipliedAlpha : false
+	    });
 	} 
 	catch(e) {}
 	if (ctx) {
