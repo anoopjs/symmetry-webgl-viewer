@@ -1,0 +1,4 @@
+node_modules/
+**/*.vtk
+**/*~
+**/.DS_STORE
