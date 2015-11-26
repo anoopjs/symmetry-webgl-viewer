@@ -10,6 +10,7 @@ var coneNormalBuffer = null;
 var indices = [];
 var vertices = [];
 var colors = [];
+var phong = true;
 var colorMap = [
     [1   ,0.8 ,0.8 ,0.8 ],  //0 skin
     [0.5 ,1   ,0.5 ,0.8 ],  //1 green
@@ -316,6 +317,8 @@ function configure() {
     gl.uniform3fv(prg.uLightPosition,    [0, 0, 2120]);
     gl.uniform4fv(prg.uLightDiffuse,      [0.7,0.7,0.7,0.0]);
 
+
+    $("#slider1").change();
     initTransforms();
 }
 
@@ -381,17 +384,48 @@ function makeSidebar() {
 	});
 	renderLoop();
     });
-    $("#slider input").change(function() {
+    $("#slider1").change(function() {
 	gl.uniform1f(prg.uTransparency, $(this).val());
 	renderLoop();
     });
+    $("#phong").change(function() {
+	phong = !phong;
+	gl.uniform1f(prg.uPhong, phong ? 1.0 : 0.0);
+	renderLoop();
+    });
+    $.ajax({
+       type: "GET",
+        url: "/dirs",
+        timeout: 20000,
+        contentType: "application/x-www-form-urlencoded;charset=ISO-8859-15",
+        success: function(data) { 
+	    var dirs = JSON.parse(data);
+	    dirs.forEach (function(dir) {
+		var el = $("<li><a='anoop'>" + dir + "</a></li>");
+		el.appendTo($("#emds"));
+		el.click(function() { 
+		    $("#clusters").html("");
+		    $("#emds").html("");
+		    start(dir); 
+		    return false; 
+		});
+	    });
+	    
+	}
+    });
+
+    $("#button").click(function() {
+	start("/VTK0");
+    });
+    
 }
-function start() {
+function start(vtk) {
+    vtk = vtk || "/vtk";
     gl = utils.getGLContext('canvas-element-id');
     initProgram();
     $.ajax({
        type: "GET",
-        url: "/vtk",
+        url: vtk,
         timeout: 20000,
         contentType: "application/x-www-form-urlencoded;charset=ISO-8859-15",
         success: function(data) { 

@@ -67,7 +67,7 @@ Camera.prototype.dolly = function(s){
     }
 	
     c.setPosition(newPosition);
-    c.steps = s;
+//    c.steps = s;
 }
 
 Camera.prototype.setPosition = function(p){
