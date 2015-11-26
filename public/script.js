@@ -11,16 +11,16 @@ var indices = [];
 var vertices = [];
 var colors = [];
 var colorMap = [
-    [1   ,0.8 ,0.8 ],  //0 skin
-    [0.5 ,1   ,0.5 ],  //1 green
-    [0   ,1   ,1   ],  //2 cyan
-    [0.6 ,0.6 ,1   ],  //3 
-    [1   ,0   ,0.5 ],  //4 red
-    [1   ,0.8 ,0.8 ],  //0 skin  
-    [0.5 ,1   ,0   ],  //6 green 
-    [0.5 ,0   ,1   ],  //7 
-    [0   ,0.5 ,1   ],  //8 blue
-    [1   ,0.65,0   ],  //9 orange  
+    [1   ,0.8 ,0.8 ,0.8 ],  //0 skin
+    [0.5 ,1   ,0.5 ,0.8 ],  //1 green
+    [0   ,1   ,1   ,0.8 ],  //2 cyan
+    [0.6 ,0.6 ,1   ,0.8 ],  //3 
+    [1   ,0   ,0.5 ,0.8 ],  //4 red
+    [1   ,0.8 ,0.8 ,0.8 ],  //0 skin  
+    [0.5 ,1   ,0   ,0.8 ],  //6 green 
+    [0.5 ,0   ,1   ,0.8 ],  //7 
+    [0   ,0.5 ,1   ,0.8 ],  //8 blue
+    [1   ,0.65,0   ,0.8 ],  //9 orange  
 ];
 var normals = [];
 var normalObj = [];
@@ -45,12 +45,12 @@ function initProgram() {
 
     gl.useProgram(prg);
 
-    prg.aVertexPosition = gl.getAttribLocation(prg, 'aVertexPosition');
-    prg.pMatrixUniform          = gl.getUniformLocation(prg, 'uPMatrix');
-    prg.mvMatrixUniform         = gl.getUniformLocation(prg, 'uMVMatrix');
-    prg.aVertexNormal   = gl.getAttribLocation(prg, 'aVertexNormal');
-    prg.aVertexColor    = gl.getAttribLocation(prg, 'aVertexColor');
-    prg.uNMatrix           = gl.getUniformLocation(prg, "uNMatrix");
+    prg.aVertexPosition   = gl.getAttribLocation(prg, 'aVertexPosition');
+    prg.pMatrixUniform    = gl.getUniformLocation(prg, 'uPMatrix');
+    prg.mvMatrixUniform   = gl.getUniformLocation(prg, 'uMVMatrix');
+    prg.aVertexNormal     = gl.getAttribLocation(prg, 'aVertexNormal');
+    prg.aVertexColor      = gl.getAttribLocation(prg, 'aVertexColor');
+    prg.uNMatrix          = gl.getUniformLocation(prg, "uNMatrix");
 
     prg.uMaterialDiffuse  = gl.getUniformLocation(prg, "uMaterialDiffuse");
     prg.uLightAmbient     = gl.getUniformLocation(prg, "uLightAmbient");
@@ -58,8 +58,9 @@ function initProgram() {
     prg.uLightPosition    = gl.getUniformLocation(prg, "uLightPosition");
     prg.uWireframe        = gl.getUniformLocation(prg, "uWireframe");
     prg.uPerVertexColor   = gl.getUniformLocation(prg, "uPerVertexColor");
-
-    prg.uShininess         = gl.getUniformLocation(prg, "uShininess");
+    prg.uTransparency     = gl.getUniformLocation(prg, "uTransparency");
+    prg.uShininess        = gl.getUniformLocation(prg, "uShininess");
+    prg.uPhong            = gl.getUniformLocation(prg, "uPhong");
 
     gl.uniform3fv(prg.uLightPosition,    [0, 120, 120]);
     gl.uniform4fv(prg.uLightAmbient,      [0.20,0.20,0.20,0.0]);
@@ -69,10 +70,9 @@ function initProgram() {
     gl.uniform4fv(prg.uMaterialAmbient, [1.0,1.0,1.0,0.0]); 
     gl.uniform4fv(prg.uMaterialDiffuse, [0.6,0.5,0.5,0.0]);
     gl.uniform4fv(prg.uMaterialSpecular,[1.0,1.0,1.0,0.0]);
-
     gl.uniform1f(prg.uShininess, 230.0);
-
-
+    gl.uniform1f(prg.uTransparency, 0.5);
+    gl.uniform1f(prg.uPhong, 1.0);
 }
 
 function initBuffers() {
@@ -122,17 +122,7 @@ function initBuffers() {
 }
 
 function draw(){
-    gl.viewport(0, 0, c_width, c_height);
-//    gl.clearColor(0.3,0,0.3, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    // gl.enable(gl.BLEND);
-    // gl.disable(gl.DEPTH_TEST);
-    // gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
     try {
-	updateTransforms();   
-	setMatrixUniforms()
-
 	gl.bindBuffer(gl.ARRAY_BUFFER, coneVertexBuffer);
 	gl.vertexAttribPointer(prg.aVertexPosition, 3, gl.FLOAT, false, 0, 0);
 	gl.enableVertexAttribArray(prg.aVertexPosition);
@@ -142,7 +132,7 @@ function draw(){
 	gl.enableVertexAttribArray(prg.aVertexNormal);
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, coneColorBuffer);
-	gl.vertexAttribPointer(prg.aVertexColor, 3, gl.FLOAT, false, 0, 0);
+	gl.vertexAttribPointer(prg.aVertexColor, 4, gl.FLOAT, false, 0, 0);
 	gl.enableVertexAttribArray(prg.aVertexColor);
 
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, coneIndexBuffer);
@@ -158,8 +148,66 @@ function draw(){
 }
 
 function renderLoop() {
-//    requestAnimFrame(renderLoop);
-    draw();
+    gl.viewport(0, 0, c_width, c_height);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.disable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
+//    gl.depthMask(false);
+    gl.blendEquation( gl.FUNC_ADD );
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    updateTransforms();   
+    setMatrixUniforms()
+    mvMatrix = camera.getViewTransform()
+    models.sort (function (a, b) {
+    	var z = function (model) {
+    	    return Math.min.apply (this, model.vertices.map (function (vertex) {
+    		var ver = vec3.create();
+    		mat4.multiplyVec3(mvMatrix, vertex, ver);
+    		return ver[2];
+    	    }));
+    	};
+    	var za = z(a);
+    	var zb = z(b);
+    	if (za > zb) {
+    	    return 1;
+    	}
+    	if (za < zb) {
+    	    return -1;
+    	}
+    	return 0;
+    });
+
+    for (var i = 0; i < models.length; i++) {
+	if (!models[i].display)
+	    continue;
+	vertices = Array.prototype.concat.apply([], models[i].vertices);
+	indices = Array.prototype.concat.apply([], models[i].faces);
+	colors = Array.prototype.concat.apply([], models[i].colors);
+	normals = Array.prototype.concat.apply([], models[i].normals);
+
+	if (i == 0) {
+	    coneVertexBuffer = gl.createBuffer();
+	    coneNormalBuffer = gl.createBuffer();
+	    coneIndexBuffer = gl.createBuffer();
+	    coneColorBuffer = gl.createBuffer();
+	}
+	gl.bindBuffer(gl.ARRAY_BUFFER, coneVertexBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+	
+	gl.bindBuffer(gl.ARRAY_BUFFER, coneNormalBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+	
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, coneIndexBuffer);
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, coneColorBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+	
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+	gl.bindBuffer(gl.ARRAY_BUFFER,null);
+	
+	draw();
+    }
 }
 
 function initTransforms(){
@@ -185,15 +233,7 @@ function setMatrixUniforms(){
 
 
 function configure() {
-    //    gl.clearColor(0.3,0,0.3, 1.0);
-    //    gl.clearDepth(100.0);
-    //    gl.enable(gl.DEPTH_TEST);
-    //    gl.depthMask(false);
-    //    gl.enable(gl.BLEND);
     gl.enable(gl.DEPTH_TEST);
-    //    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    //    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    //    gl.depthFunc(gl.LEQUAL);
     var midx = vertices.filter(function (a, index) {
 	return index % 3 == 0;
     }).reduce(function(a, b) {
@@ -258,7 +298,35 @@ function configure() {
     }, 0);
 
 
-    for (i = 0; i < indices.length; i = i + 3) {
+    camera = new Camera(CAMERA_ORBIT_TYPE);
+    var max = Math.max.apply(null, [maxx, maxy, maxz]);
+    camera.goHome([0, 0, max * 4]);
+    camera.hookRenderer = renderLoop;
+
+    for (var i = 0; i < models.length; i++) {
+	models[i].vertices = models[i].vertices.map (function (a) {
+	    return [a[0] - midx, a[1] - midy, a[2] - midz];
+	});
+    }
+    
+    var canvas = document.getElementById('canvas-element-id');
+    interactor = new CameraInteractor(camera, canvas);
+    
+    gl.uniform4fv(prg.uLightAmbient,      [0.1,0.1,0.1,0]);
+    gl.uniform3fv(prg.uLightPosition,    [0, 0, 2120]);
+    gl.uniform4fv(prg.uLightDiffuse,      [0.7,0.7,0.7,0.0]);
+
+    initTransforms();
+}
+
+function calculateNormals(model) {
+    var indices = model.faces;
+    var vertices = model.vertices;
+    vertices = Array.prototype.concat.apply([], vertices);
+    indices = Array.prototype.concat.apply([], indices);
+    var normalObj = [];
+    var normals = [];
+    for (var i = 0; i < indices.length; i = i + 3) {
 	var first = 
 	    [vertices[3*indices[i]], vertices[3*indices[i]+1], vertices[3*indices[i]+2]];
 	var second = 
@@ -267,7 +335,6 @@ function configure() {
 	    [vertices[3*indices[i+2]], vertices[3*indices[i+2]+1], vertices[3*indices[i+2]+2]];
 
 	var sideOne = [second[0] - first[0], second[1] - first[1], second[2] - first[2]];
-//	var sideOne = [first[0] - second[0], first[1] - second[1], first[2] - second[2]];
 	var sideTwo = [first[0] - third[0], first[1] - third[1], first[2] - third[2]];
 	var normal = vec3.cross(sideOne, sideTwo);
 	if (normalObj[indices[i]] == undefined) {
@@ -278,7 +345,7 @@ function configure() {
 	}
     }
 
-    for (i = 0; i < normalObj.length; i++) {
+    for (var i = 0; i < vertices.length / 3; i++) {
 	normals[i] = [0, 0, 0];
 	if (normalObj[i]) {
 	    for (j = 0; j < normalObj[i].length; j++) {
@@ -291,24 +358,34 @@ function configure() {
 	    normals[i][2] /= normalObj[i].length;
 	}
     }
-
-    normals = Array.prototype.concat.apply([], normals);
-    camera = new Camera(CAMERA_ORBIT_TYPE);
-    var max = Math.max.apply(null, [maxx, maxy, maxz]);
-    camera.goHome([0, 0, max * 4]);
-
-    camera.hookRenderer = draw;
-    
-    var canvas = document.getElementById('canvas-element-id');
-    interactor = new CameraInteractor(camera, canvas);
-    
-    gl.uniform4fv(prg.uLightAmbient,      [0.1,0.1,0.1,0.8]);
-    gl.uniform3fv(prg.uLightPosition,    [0, 0, 2120]);
-    gl.uniform4fv(prg.uLightDiffuse,      [0.7,0.7,0.7,0.0]);
-
-    initTransforms();
+    model.normals = normals;
 }
-
+function makeSidebar() {
+    var clusters = models.map(function(model) { 
+	return model.dir;
+    })
+    .reduce (function (prev, current, index, array) {
+	if (prev.indexOf (current) == -1)
+	    return prev.concat(current);
+	else return prev;
+    }, []);
+    clusters.forEach(function(cluster) {
+	$("<li><input type=\"checkbox\" value=\"" + cluster + "\" checked=\"true\" \"><label>"
+	  +cluster + "</label></input></li>")
+	    .appendTo($("#clusters"));
+    });
+    $("#clusters input").change(function() {
+	var dir = $(this).val();
+	models.filter(function(model) { return model.dir == dir }).forEach(function(model) {
+	    model.display = !model.display;
+	});
+	renderLoop();
+    });
+    $("#slider input").change(function() {
+	gl.uniform1f(prg.uTransparency, $(this).val());
+	renderLoop();
+    });
+}
 function start() {
     gl = utils.getGLContext('canvas-element-id');
     initProgram();
@@ -320,21 +397,26 @@ function start() {
         success: function(data) { 
 	    models = JSON.parse(data);
 	    var faceIndex = 0;
-	    for (i = 0; i < models.length; i++) {
+	    for (var i = 0; i < models.length; i++) {
 		vertices = vertices.concat(models[i].vertices);
 		var fill = Array.apply(null, Array(models[i].vertices.length))
 		    .map(function(){return colorMap[models[i].color];});
-		colors = colors.concat(fill);
+		models[i].colors = fill;
+//		colors = colors.concat(fill);
 		indices = indices.concat(models[i].faces.map(function(face) {
 		     return [face[0] + faceIndex, face[1] + faceIndex, face[2] + faceIndex];
 		}));
+		calculateNormals(models[i]);
+		normals = normals.concat(models[i].normals);
 		faceIndex += models[i].vertices.length;
+		models[i].display = true;
 	    }
 	    vertices = Array.prototype.concat.apply([], vertices);
-	    indices = Array.prototype.concat.apply([], indices);
-	    colors = Array.prototype.concat.apply([], colors);
+	    // indices = Array.prototype.concat.apply([], indices);
+	    // colors = Array.prototype.concat.apply([], colors);
+	    // normals = Array.prototype.concat.apply([], normals);
+	    makeSidebar();
 	    configure();
-	    initBuffers();
 	    renderLoop();
 	}
     });  

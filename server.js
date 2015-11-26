@@ -19,6 +19,7 @@ app.get('/vtk', function(req, res, next) {
 		var data = fs.readFileSync("public/VTK/" + dirs[i] + "/" + files[j], 'utf8');
 		var pdata = parseVTK(data);
 		pdata.color = i %  6;
+		pdata.dir = dirs[i];
 		models.push(pdata);
 	    }
 	}
